@@ -5,7 +5,7 @@
 StrView
 sv_empty()
 {
-	return sv_from_parts("", 0);
+	return sv_from_parts(NULL, 0);
 }
 
 StrView
