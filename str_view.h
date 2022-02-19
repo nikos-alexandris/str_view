@@ -12,182 +12,238 @@ typedef struct StrView {
 #define SV_FMT "%.*s"
 #define SV_ARG(s) (int)(s).__size, (s).__buffer
 
-/*
- * Returns an empty StrView.
- * The user can test if an StrView is empty
- * with the sv_is_empty function.
+/**
+ * @brief Returns an empty StrView.
+ * @Example
+ * @code
+ * StrView s = sv_empty();
+ * assert(sv_is_empty(s) == true);
+ * @endcode
  */
 StrView
 sv_empty();
 
-/*
- * Returns an StrView constructed from the
- * given pointer and size.
+/**
+ * @brief Creates an StrView from a pointer and a __size.
+ * @Example
+ * @code
+ * StrView s = sv_from_parts("Hello!, 4);
+ * assert(sv_eq(s, sv_from("Hell")));
+ * @endcode
  *
- * The function doesn't
- * check for correctness, so if buf is "Hello" and
- * size is bigger than 6, the result is undefined.
- *
- * To construct an StrView from a null terminated
- * string safely, use sv_from_cstr.
  */
 StrView
 sv_from_parts(const char *buf, size_t size);
 
-/*
- * Returns an StrView constructed from the range
- * [start, end).
- *
- * If end < start, the arguments are inverted, and
- * the StrView is constructed from the range [end, start).
+/**
+ * @brief Creates an StrView from a pointer range.
+ * @Example
+ * @code
+ * StrView s1 = sv_from("Hello!");
+ * StrView s2 = sv_from_slice(sv_ref(s1, 0), sv_ref(s1, 3));
+ * assert(sv_eq(s2, sv_from("Hell")));
+ * @endcode
  */
 StrView
 sv_from_slice(const char *start, const char *end);
 
-/*
- * Returns an StrView constructed from the given string.
- *
- * The string *must* be null terminated, because the function
- * uses strlen to determine its length.
+/**
+ * @brief Creates an StrView from a null terminated c string.
+ * @Undefined
+ * Undefined behaviour if buf is NULL
+ * @Warning buf @b must be null terminated, because the
+ * function uses strlen to determine its length.
+ * @Example
+ * @code
+ * StrView s = sv_from("Hello!");
+ * assert(sv_size(s) == 6);
+ * assert(strncmp(sv_raw(s), "Hello!", sv_size(s)) == 0);
+ * @endcode
  */
 StrView
-sv_from_cstr(const char *buf);
+sv_from(const char *buf);
 
-/*
- * Returns the size of the view.
+/**
+ * @brief Returns a pointer to the underlying __buffer.
  *
- * Note that even if the view is constructed by a null
- * terminated const char *, the size will not account for
- * the '\0'. For example, if a view is constructed from
- * "Hello!", the size of the view will be 6.
+ * @Warning
+ * Usage of this function is not recommended. If you
+ * want a reference to a char in the string, use sv_ref.
+ */
+const char *
+sv_raw(StrView s);
+
+/**
+ * @brief Returns the __size of s.
+ *
+ * @Example
+ * @code
+ * StrView s = sv_from("Hello!");
+ * assert(sv_size(s) == 6);
+ * @endcode
  */
 size_t
 sv_size(StrView s);
 
-/*
- * This function returns a pointer to the beginning
- * of the underlying buffer.
- *
- * WARNING: It is *not* recommended accessing the underlying
- * buffer in its raw form unless you know what you are doing.
- */
-const char *
-sv_to_cstr(StrView s);
-
-/*
- * Returns the character in the idx-th position.
- * This function does *not* bounds-check.
- * For a safe alternative, use sv_at_s.
+/**
+ * @brief Returns the idx-th char in s.
+ * @Undefined
+ * Undefined behaviour if idx is less than or equal to the __size of s.
+ * @Example
+ * @code
+ * StrView s = sv_from("Hello!");
+ * assert(sv_at(s, 0) == 'H');
+ * assert(sv_at(s, sv_size(s) - 1), '!');
+ * @endcode
  */
 char
 sv_at(StrView s, size_t idx);
 
-/*
- * If idx is less than the view's size, returns
- * 0 and assigns the idx-th character to c;
- * else returns -1.
- */
-int
-sv_at_s(StrView s, size_t idx, char *c);
-
-/*
- * Returns a reference to the character in the
- * idx-th position. This function does *not* bounds-check.
- * For a safe alternative, use sv_at_ref_s.
+/**
+ * @brief Returns a reference to the idx-th char in s
+ * @Undefined
+ * Undefined behaviour if idx is less than or equal to the __size of s.
+ * @Example
+ * @code
+ * StrView s = sv_from("Hello!");
+ * assert(*sv_ref(s, 0) == 'H');
+ * assert(sv_ref(s, 0)[1] == 'e');
+ * @endcode
  */
 const char *
-sv_at_ref(StrView s, size_t idx);
+sv_ref(StrView s, size_t idx);
 
-/*
- * If idx is less than the view's size, returns
- * 0 and assigns the reference to the idx-th character
- * to c; else returns -1.
- */
-int
-sv_at_ref_s(StrView s, size_t idx, const char **c);
-
-/*
- * strcmp for StrView
+/**
+ * @brief strcmp for StrView
  */
 int
 sv_cmp(StrView s1, StrView s2);
 
-/*
- * Splits the view into the part before the delimiter and
- * the part after the delimiter, and assigns them to pre
- * and post respectively.
- *
- * If the delimiter is found in the view, the function returns
- * true, else it returns false.
- *
- * For example:
- *
- * `sv_split(sv_from_cstr("Hello!World", '!', &pre, &post);`
- *
- * will return true, and will assign "Hello" to pre, and "World" to post,
- * whereas
- *
- * `sv_split(sv_from_cstr("Hello World", '!', &prem &post);`
- *
- * will return false, and will assign "Hello World" to pre, and
- * post will get assigned an empty string starting at the character
+/**
+ * Returns true if s1 == s2
+ * @Example
+ * @code
+ * StrView s1 = sv_from("Hello!");
+ * assert(sv_eq(s1, sv_from("Hello!")));
+ * @endcode
+ */
+bool
+sv_eq(StrView s1, StrView s2);
+
+/**
+ * @brief Splits s into the part before delim and the part after delim.
+ * If delim is not found in s, pre is assigned the whole s string, and
+ * post is assigned the empty string starting at the first character
  * after the end of s.
+ * @Examples
+ * @code
+ * StrView s, l, r;
+ * s = sv_from("Hello!World");
+ * sv_split(s, '!', &l, &r);
  *
- * Any or both of the pre and post args can be null.
+ * assert(sv_eq(l, sv_from("Hello")));
+ * assert(sv_eq(r, sv_from("World")));
+ * @endcode
+ * @code
+ * StrView s, l, r;
+ * s = sv_from("Hello!World");
+ * sv_split(s, '@', &l, &r);
+ *
+ * assert(sv_eq(l, s));
+ * assert(sv_eq(r, sv_empty()));
+ * assert(sv_raw(r) == &sv_raw(s)[sv_size(s)]);
+ * @endcode
  */
 bool
 sv_split(StrView s, char delim, StrView *pre, StrView *post);
 
-/*
- * Same as sv_split, but only checks the first n characters for the delimiter
+/**
+ * @brief Splits s into the part before delim and the part after delim,
+ * checking at most n characters. If delim is not found in the first n
+ * characters of s, pre is assigned the whole s string, and
+ * post is assigned the empty string starting at the first character
+ * after the end of s.
+ * @Examples
+ * @code
+ * StrView s, l, r;
+ * s = sv_from("Hello!World");
+ * sv_split_n(s, '!', 6, &l, &r);
+ *
+ * assert(sv_eq(l, sv_from("Hello")));
+ * assert(sv_eq(r, sv_from("World")));
+ * @endcode
+ * @code
+ * StrView s, l, r;
+ * s = sv_from("Hello!World");
+ * sv_split_n(s, '!', 5, &l, &r);
+ *
+ * assert(sv_eq(l, s));
+ * assert(sv_eq(r, sv_empty()));
+ * assert(sv_raw(r) == &sv_raw(s)[sv_size(s)]);
+ * @endcode
  */
 bool
 sv_split_n(StrView s, char delim, size_t n, StrView *pre, StrView *post);
 
-/*
- * Checks if the size of s is zero.
+/**
+ * @brief Checks if s is empty
  */
 bool
 sv_is_empty(StrView s);
 
-/*
- * Checks if s contains the character c
+/**
+ * @brief Returns true if there is at least one one occurrence of c in s.
+ * Returns false otherwise.
  */
 bool
 sv_contains(StrView s, char c);
 
-/*
- * Returns true if s contains the character c, and assigns its first occurrence
- * index to idx. Else, it returns false.
- *
- * idx can be null
+/**
+ * @brief Returns true if there is at least one occurrence of c in s
+ * and assigns the index of its first occurrence to idx.
+ * Returns false otherwise.
  */
 bool
-sv_first_occ(StrView s, char c, size_t *idx);
+sv_find(StrView s, char c, size_t *idx);
 
-/*
- * Returns true if s contains the character c, and assigns its last occurrence
- * index to idx. Else, it returns false.
- *
- * idx can be null
+/**
+ * @brief Returns true if there is at least one occurrence of c in s and
+ * assigns the index of its last occurrence to idx. Returns false
+ * otherwise.
  */
 bool
-sv_last_occ(StrView s, char c, size_t *idx);
+sv_rfind(StrView s, char c, size_t *idx);
 
-/*
- * Returns the number of occurrences of c in s
+/**
+ * @brief Returns the number of occurrences of c in s.
  */
 size_t
 sv_count(StrView s, char c);
 
-/*
- * Returns true if prefix is a prefix of s, else returns false
+/**
+ * @brief Returns true if prefix is a prefix of s.
+ * Returns false otherwise.
+ * @Examples
+ * @code
+ * StrView s = sv_from("Hello World!");
+ *
+ * assert(sv_starts_with(s, sv_from("Hello")));
+ * assert(sv_starts_with(s, sv_from("")));
+ * @endcode
  */
 bool
 sv_starts_with(StrView s, StrView prefix);
 
-/*
- * Returns true if postfix is a postfix of s, else returns false
+/**
+ * @brief Returns true if postfix is a postfix of s
+ * Returns false otherwise.
+ * @Examples
+ * @code
+ * StrView s = sv_from("Hello World!");
+ *
+ * assert(sv_ends_with(s, sv_from("World!")));
+ * assert(sv_ends_with(s, sv_from("")));
+ * @endcode
  */
 bool
 sv_ends_with(StrView s, StrView postfix);

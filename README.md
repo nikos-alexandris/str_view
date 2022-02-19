@@ -50,12 +50,6 @@ Clone the repo in your project
 git clone https://github.com/nikos-alexandris/str_view
 ```
 
-or add it as a submodule in a git project
-
-```shell
-git submodule add https://github.com/nikos-alexandris/str_view
-```
-
 and simply include the `str_view.h` header
 
  ```c
