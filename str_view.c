@@ -31,9 +31,15 @@ sv_from_slice(const char *start, const char *end)
 }
 
 StrView
-sv_from_cstr(const char *buf)
+sv_from(const char *buf)
 {
 	return sv_from_parts(buf, strlen(buf));
+}
+
+const char *
+sv_raw(StrView s)
+{
+	return s.__buffer;
 }
 
 size_t
@@ -49,18 +55,9 @@ sv_to_cstr(StrView s)
 }
 
 const char *
-sv_at_ref(StrView s, size_t idx)
+sv_ref(StrView s, size_t idx)
 {
 	return &s.__buffer[idx];
-}
-
-int
-sv_at_ref_s(StrView s, size_t idx, const char **c)
-{
-	if (idx >= s.__size)
-		return -1;
-	*c = &s.__buffer[idx];
-	return 0;
 }
 
 char
@@ -70,24 +67,19 @@ sv_at(StrView s, size_t idx)
 }
 
 int
-sv_at_s(StrView s, size_t idx, char *c)
-{
-	const char *p;
-
-	if (sv_at_ref_s(s, idx, &p) != 0)
-		return -1;
-
-	*c = *p;
-	return 0;
-}
-
-int
 sv_cmp(StrView s1, StrView s2)
 {
 	return strncmp(
 	  s1.__buffer,
 	  s2.__buffer,
 	  s1.__size > s2.__size ? s2.__size : s1.__size);
+}
+
+bool
+sv_eq(StrView s1, StrView s2)
+{
+	return s1.__size == s2.__size
+	    && strncmp(s1.__buffer, s2.__buffer, s1.__size) == 0;
 }
 
 bool
@@ -105,11 +97,12 @@ sv_split(StrView s, char delim, StrView *pre, StrView *post)
 	}
 
 	if (pre)
-		*pre = sv_from_parts(&s.__buffer[0], i - 1);
+		*pre = sv_from_parts(&s.__buffer[0], i);
 
 	if (post)
-		*post = ret ? sv_from_parts(&s.__buffer[i + 1], s.__size - i)
-			    : sv_from_parts(&s.__buffer[s.__size], 0);
+		*post = ret
+			? sv_from_parts(&s.__buffer[i + 1], s.__size - i - 1)
+			: sv_from_parts(&s.__buffer[s.__size], 0);
 
 	return ret;
 }
@@ -129,11 +122,12 @@ sv_split_n(StrView s, char delim, size_t n, StrView *pre, StrView *post)
 	}
 
 	if (pre)
-		*pre = ret ? sv_from_parts(s.__buffer, i - 1) : s;
+		*pre = ret ? sv_from_parts(s.__buffer, i) : s;
 
 	if (post)
-		*post = ret ? sv_from_parts(&s.__buffer[i + 1], s.__size - i)
-			    : sv_from_parts(&s.__buffer[s.__size], 0);
+		*post = ret
+			? sv_from_parts(&s.__buffer[i + 1], s.__size - i - 1)
+			: sv_from_parts(&s.__buffer[s.__size], 0);
 
 	return ret;
 }
@@ -157,7 +151,7 @@ sv_contains(StrView s, char c)
 }
 
 bool
-sv_first_occ(StrView s, char c, size_t *idx)
+sv_find(StrView s, char c, size_t *idx)
 {
 	size_t i;
 
@@ -172,7 +166,7 @@ sv_first_occ(StrView s, char c, size_t *idx)
 }
 
 bool
-sv_last_occ(StrView s, char c, size_t *idx)
+sv_rfind(StrView s, char c, size_t *idx)
 {
 	size_t i;
 
